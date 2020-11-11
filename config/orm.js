@@ -1,0 +1,143 @@
+// Import MySQL connection.
+const connection = require("../config/connection.js");
+
+// Helper function for SQL syntax.
+// Let's say we want to pass 3 values into the mySQL query.
+// In order to write the query, we need 3 question marks.
+// The above helper function loops through and creates an array of question marks - ["?", "?", "?"] - and turns it into a string.
+// ["?", "?", "?"].toString() => "?,?,?";
+function printQuestionMarks(num) {
+  const arr = [];
+
+  for (let i = 0; i < num; i++) {
+    arr.push("?");
+  }
+
+  return arr.toString();
+}
+
+// Helper function to convert object key/value pairs to SQL syntax
+function objToSql(ob) {
+  const arr = [];
+
+  // loop through the keys and push the key/value as a string int arr
+  for (const key in ob) {
+    let value = ob[key];
+    // check to skip hidden properties
+   // Object.hasOwnProperty.call(ob, key) > true /false
+    if (Object.hasOwnProperty.call(ob, key)) {
+      // if string with spaces, add quotations (Lana Del Grey => 'Lana Del Grey')
+      if (typeof value === "string" && value.indexOf(" ") >= 0) {
+        value = "'" + value + "'";
+      }
+      // e.g. {name: 'Lana Del Grey'} => ["name='Lana Del Grey'"]
+      // e.g. {sleepy: true} => ["sleepy=true"]
+      arr.push(key + "=" + value);
+    }
+  }
+
+  // translate array of strings to a single comma-separated string
+  return arr.toString();
+}
+
+// Object for all our SQL statement functions.
+const orm = {
+  all: function(tableInput, cb) {
+    const queryString = "SELECT * FROM " + tableInput + ";";
+    connection.query(queryString, function(err, result) {
+      if (err) {
+        throw err;
+      }
+      cb(result);
+    });
+  },
+  create: function(table, cols, vals, cb) {
+    let queryString = "INSERT INTO " + table;
+
+    queryString += " (";
+    queryString += cols.toString();
+    queryString += ") ";
+    queryString += "VALUES (";
+    queryString += printQuestionMarks(vals.length);
+    queryString += ") ";
+
+    console.log(queryString);
+
+    connection.query(queryString, vals, function(err, result) {
+      if (err) {
+        throw err;
+      }
+
+      cb(result);
+    });
+  },
+  // An example of objColVals would be {name: panther, sleepy: true}
+  update: function(table, objColVals, condition, cb) {
+    let queryString = "UPDATE " + table;
+
+    queryString += " SET ";
+    queryString += objToSql(objColVals);
+    queryString += " WHERE ";
+    queryString += condition;
+
+    console.log(queryString);
+    connection.query(queryString, function(err, result) {
+      if (err) {
+        throw err;
+      }
+
+      cb(result);
+      // update(burger, {name: 'bigMac'}, devouer = 0, function(res) {console.log(res)})
+    });
+  },
+  delete: function(table, condition, cb) {
+    let queryString = "DELETE FROM " + table;
+    queryString += " WHERE ";
+    queryString += condition;
+
+    connection.query(queryString, function(err, result) {
+      if (err) {
+        throw err;
+      }
+
+      cb(result);
+    });
+  }
+};
+
+function test(test1) {
+  
+  console.log(test1)
+}
+
+// const btn;
+// btn.addEventListner('click', function(event) {
+//   console.log(event)
+//   const res = event.target.value;
+// })
+
+// function newEvent(eventType, callBack) {
+//   const data = [1, 2, 3, 4];
+//   callBack(data);
+// }
+
+// newEvent((result) => {
+//   console.log(result)
+// })
+
+
+
+// function any(data) {
+//  console.log(data)
+// }
+
+// function show() {
+//   const res=1;
+//   any(res)
+// }
+
+
+
+
+// Export the orm object for the model (cat.js).
+module.exports = orm;
